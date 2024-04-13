@@ -3,8 +3,10 @@
 
 # VS
 .vs/*
+.vscode/*
 *.sln
 *.vcx*
+x64/*
 
 # Compiled Object files
 *.slo
