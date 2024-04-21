@@ -1,10 +1,10 @@
-#include "AffinityPropagationClustering.hpp"
+#include "ApcCpu.hpp"
 #include <iostream>
 #include <limits>
 #include <stdlib.h>
 #include <vector>
 
-AffinityPropagationClustering::	AffinityPropagationClustering(float* points, int pointCount, int pointDimension, float dampingFactor)
+ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingFactor)
 {
 	if (pointCount <= 0)
 	{
@@ -35,23 +35,27 @@ AffinityPropagationClustering::	AffinityPropagationClustering(float* points, int
 	memcpy(m_points, points, 4 * m_pointCount * m_pointDimension);
 }
 
-AffinityPropagationClustering::~AffinityPropagationClustering()
+ApcCpu::~ApcCpu()
 {
 	delete m_points;
+	delete m_similarity;
+	delete m_responsibility;
+	delete m_availability;
 }
 
-void AffinityPropagationClustering::clusterCpu()
+void ApcCpu::cluster()
 {
-	updateSimilarityCpu();
+	updateSimilarity();
+	// TODO: Make iteration count a parameter
 	for (int iter = 0; iter < 100; iter++)
 	{
-		updateResponsibilityCpu();
-		updateAvailabilityCpu();
+		updateResponsibility();
+		updateAvailability();
 	}
 	labelPoints();
 }
 
-void AffinityPropagationClustering::updateSimilarityCpu()
+void ApcCpu::updateSimilarity()
 {
 	for (int i = 0; i < m_pointCount; i++)
 	{
@@ -76,7 +80,7 @@ void AffinityPropagationClustering::updateSimilarityCpu()
 	}
 }
 
-void AffinityPropagationClustering::updateResponsibilityCpu()
+void ApcCpu::updateResponsibility()
 {
 	for (int i = 0; i < m_pointCount; i++)
 	{
@@ -104,7 +108,7 @@ void AffinityPropagationClustering::updateResponsibilityCpu()
 	}
 }
 
-void AffinityPropagationClustering::updateAvailabilityCpu()
+void ApcCpu::updateAvailability()
 {
 	for (int i = 0; i < m_pointCount; i++)
 	{
@@ -143,7 +147,7 @@ void AffinityPropagationClustering::updateAvailabilityCpu()
 	}
 }
 
-void AffinityPropagationClustering::labelPoints()
+void ApcCpu::labelPoints()
 {
 	// Find all exemplar points by checking the criteria
 	std::vector<int> exemplars;
