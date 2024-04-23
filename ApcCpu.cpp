@@ -43,11 +43,10 @@ ApcCpu::~ApcCpu()
 	delete m_availability;
 }
 
-void ApcCpu::cluster()
+void ApcCpu::cluster(int iterations)
 {
 	updateSimilarity();
-	// TODO: Make iteration count a parameter
-	for (int iter = 0; iter < 100; iter++)
+	for (int iter = 0; iter < iterations; iter++)
 	{
 		updateResponsibility();
 		updateAvailability();

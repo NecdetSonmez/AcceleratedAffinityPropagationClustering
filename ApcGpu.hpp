@@ -5,7 +5,7 @@ class ApcGpu
 public:
 	ApcGpu(float* points, int pointCount, int pointDimension, float dampingFactor);
 	~ApcGpu();
-	void cluster();
+	void cluster(int iterations = 100);
 
 private:
 	void updateSimilarity();

@@ -5,7 +5,7 @@ class ApcCpu
 public:
 	ApcCpu(float* points, int pointCount, int pointDimension, float dampingFactor);
 	~ApcCpu();
-	void cluster();
+	void cluster(int iterations = 100);
 
 private:
 	void updateSimilarity();

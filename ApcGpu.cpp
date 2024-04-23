@@ -48,11 +48,10 @@ ApcGpu::~ApcGpu()
     cudaFree(m_availability);
 }
 
-void ApcGpu::cluster()
+void ApcGpu::cluster(int iterations)
 {
 	updateSimilarity();
-	// TODO: Make iteration count a parameter
-	for (int iter = 0; iter < 100; iter++)
+	for (int iter = 0; iter < iterations; iter++)
 	{
 		updateResponsibility();
 		updateAvailability();
