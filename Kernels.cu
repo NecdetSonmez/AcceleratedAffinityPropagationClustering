@@ -6,7 +6,7 @@ void launchKernel_updateSimilarity(int blockCount, int threadCount, float* point
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
     Kernel_updateSimilarity<<<blockCount2d, threadCount2d>>>(points, similarity, pointCount, pointDimension);
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 }
 
 __global__ void Kernel_updateSimilarity(float* points, float* similarity, int pointCount, int pointDimension)
@@ -106,4 +106,15 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 			newAvailability = 0;
 		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
 	}
+}
+// TODO: Add a kernel to extract exemplars as a bool array (Ex: [0 0 1 0 0 1 0]). Then, parse this array to indices (Ex: [2 5]).
+// TODO: Add a kernel that compares each point to each exemplar to obtain the cluster for that point
+void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount)
+{
+	// WIP
+}
+
+__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount)
+{
+	// WIP
 }

@@ -91,7 +91,7 @@ void ApcGpu::updateAvailability()
 
 void ApcGpu::labelPoints()
 {
-	// TODO: Can switch this to GPU as well. Currently in CPU.
+	// TODO: PRIORITY Can switch this to GPU as well. Currently in CPU.
 
 	// Find all exemplar points by checking the criteria
 	std::vector<int> exemplars;

@@ -14,3 +14,7 @@ __global__ void Kernel_updateResponsibility(float* similarity, float* responsibi
 // Availability
 void launchKernel_updateAvailability(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor);
 __global__ void Kernel_updateAvailability(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor);
+
+// Point labeling
+void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount);
+__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount);
