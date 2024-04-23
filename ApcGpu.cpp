@@ -56,6 +56,7 @@ void ApcGpu::cluster(int iterations)
 		updateResponsibility();
 		updateAvailability();
 	}
+	cudaDeviceSynchronize();
 	labelPoints();
 }
 

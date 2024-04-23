@@ -37,7 +37,6 @@ void launchKernel_updateResponsibility(int blockCount, int threadCount, float* s
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
     Kernel_updateResponsibility<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor);
-    cudaDeviceSynchronize();
 }
 
 __global__ void Kernel_updateResponsibility(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
@@ -68,7 +67,6 @@ void launchKernel_updateAvailability(int blockCount, int threadCount, float* sim
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
     Kernel_updateAvailability<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor);
-    cudaDeviceSynchronize();
 }
 
 __global__ void Kernel_updateAvailability(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
