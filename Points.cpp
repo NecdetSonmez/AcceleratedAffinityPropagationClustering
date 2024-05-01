@@ -33,7 +33,7 @@ void Points::generatePoints(std::vector<std::tuple<float, float>> centers, int c
 
     for (int j = 0; j < 2 * m_count; j += 2)
     {
-        std::cout << m_points[j] << " " << m_points[j + 1] << "\n";
+        //std::cout << m_points[j] << " " << m_points[j + 1] << "\n";
     }
 
 }

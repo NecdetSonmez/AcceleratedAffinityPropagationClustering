@@ -6,13 +6,15 @@
 
 #include "ApcCpu.hpp"
 #include "ApcGpu.hpp"
+#include "ApcGpuV2.hpp"
 #include "Points.hpp"
 
-#define POINT_COUNT 500
+#define POINT_COUNT 1000
 #define POINT_DIM 2
 
 #define USE_CPU false
 #define USE_GPU true
+#define USE_GPU_V2 true
 
 int main()
 {
@@ -38,10 +40,21 @@ int main()
     ApcGpu gpuClusterer(points, POINT_COUNT, POINT_DIM, 0.5);
 
     auto startTimeGpu = std::chrono::high_resolution_clock::now();
-    gpuClusterer.cluster();
+    gpuClusterer.cluster(25);
     auto endTimeGpu = std::chrono::high_resolution_clock::now();
     auto durationGpu = std::chrono::duration_cast<std::chrono::microseconds>(endTimeGpu - startTimeGpu).count();
     std::cout << "GPU Time taken: " << durationGpu << " microseconds." << std::endl;
+#endif
+
+#if USE_GPU_V2
+    // Cluster with GPU and measure time
+    ApcGpuV2 gpuClustererV2(points, POINT_COUNT, POINT_DIM, 0.5);
+
+    auto startTimeGpuV2 = std::chrono::high_resolution_clock::now();
+    gpuClustererV2.cluster(25);
+    auto endTimeGpuV2 = std::chrono::high_resolution_clock::now();
+    auto durationGpuV2 = std::chrono::duration_cast<std::chrono::microseconds>(endTimeGpuV2 - startTimeGpuV2).count();
+    std::cout << "GPU Time taken: " << durationGpuV2 << " microseconds." << std::endl;
 #endif
 
     return 0;

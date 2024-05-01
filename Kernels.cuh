@@ -15,6 +15,18 @@ __global__ void Kernel_updateResponsibility(float* similarity, float* responsibi
 void launchKernel_updateAvailability(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor);
 __global__ void Kernel_updateAvailability(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor);
 
+// Exemplars
+void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount, char* exemplars);
+__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount, char* exemplars);
+
 // Point labeling
-void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount);
-__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount);
+void launchKernel_labelPoints(int blockCount, int threadCount, float* similarity, char* exemplars, int* pointLabels, int pointCount);
+__global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* pointLabels, int pointCount);
+
+// Sums of responsibility
+void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility);
+__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility);
+
+// Availability with sum data precomputed
+void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
+__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);

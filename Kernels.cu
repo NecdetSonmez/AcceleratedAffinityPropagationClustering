@@ -107,14 +107,107 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
 	}
 }
-// TODO: Add a kernel to extract exemplars as a bool array (Ex: [0 0 1 0 0 1 0]). Then, parse this array to indices (Ex: [2 5]).
-// TODO: Add a kernel that compares each point to each exemplar to obtain the cluster for that point
-void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount)
+
+void launchKernel_extractExemplars(int blockCount, int threadCount, float* responsibility, float* availability, int pointCount, char* exemplars)
 {
-	// WIP
+    Kernel_extractExemplars<<<blockCount, threadCount>>>(responsibility, availability, pointCount, exemplars);
 }
 
-__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount)
+__global__ void Kernel_extractExemplars(float* responsibility, float* availability, int pointCount, char* exemplars)
 {
-	// WIP
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= pointCount)
+        return;
+
+	float criteria = availability[pointCount * i + i] + responsibility[pointCount * i + i];
+	if (criteria > 0)
+		exemplars[i] = 1;
+	else
+		exemplars[i] = 0;
 }
+
+void launchKernel_labelPoints(int blockCount, int threadCount, float* similarity, char* exemplars, int* pointLabels, int pointCount)
+{
+	Kernel_labelPoints<<<blockCount, threadCount>>>(similarity, exemplars, pointLabels, pointCount);
+}
+
+__global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* pointLabels, int pointCount)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= pointCount)
+        return;
+
+	float max = -FLT_MAX;
+	int selectedExemplar = -1;
+	for (int e = 0; e < pointCount; e++)
+	{
+		if (exemplars[e] == 0)
+			continue;
+
+		float temp = similarity[pointCount * i + e];
+		if (temp > max)
+		{
+			max = temp;
+			selectedExemplar = e;
+		}
+	}
+	pointLabels[i] = selectedExemplar;
+}
+
+void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility)
+{
+	//cudaMemset(sumsOfResponsibility, 0, 4 * pointCount);
+	Kernel_sumOfResponsibility<<<blockCount, threadCount>>>(responsibility, pointCount, sumsOfResponsibility);
+}
+
+__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility)
+{
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+	if (j >= pointCount)
+        return;
+
+	float sum = 0;
+	for (int k = 0; k < pointCount; k++)
+    	sum += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
+	sumsOfResponsibility[j] = sum;
+}
+
+void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
+{
+    dim3 blockCount2d(blockCount, blockCount);
+    dim3 threadCount2d(threadCount, threadCount);
+    Kernel_updateAvailabilityWithSum<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, sumsOfResponsibility);
+}
+
+__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
+{
+    // Open n^2 threads for this kernel. For each point (i,j)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= pointCount || j >= pointCount)
+        return;
+
+	if (i == j)
+	{
+		float newAvailability = sumsOfResponsibility[j];
+
+		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
+
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+	}
+	else
+	{
+		float newAvailability = sumsOfResponsibility[j];
+
+		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
+		newAvailability -= (responsibility[pointCount * j + j] > 0 ? responsibility[pointCount * j + j] : 0);
+
+		newAvailability += responsibility[pointCount * j + j];
+		
+		// min(0, newAvailability)
+		if (newAvailability > 0)
+			newAvailability = 0;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+	}
+}
+

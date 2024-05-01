@@ -48,6 +48,8 @@ ApcGpu::~ApcGpu()
     cudaFree(m_availability);
 }
 
+//#include <fstream>
+
 void ApcGpu::cluster(int iterations)
 {
 	updateSimilarity();
@@ -55,6 +57,17 @@ void ApcGpu::cluster(int iterations)
 	{
 		updateResponsibility();
 		updateAvailability();
+		//if (iter == 25)
+        //{
+		//	cudaDeviceSynchronize();
+        //    std::ofstream outputFile("A.txt");
+        //    if (outputFile.is_open())
+        //    {
+        //        for (int i = 0; i < m_pointCount * m_pointCount; i++)
+        //            outputFile << m_availability[i] << "\n";
+        //        outputFile.close();
+        //    }   
+        //}
 	}
 	cudaDeviceSynchronize();
 	labelPoints();
@@ -91,14 +104,12 @@ void ApcGpu::updateAvailability()
 
 void ApcGpu::labelPoints()
 {
-	// TODO: PRIORITY Can switch this to GPU as well. Currently in CPU.
-
 	// Find all exemplar points by checking the criteria
 	std::vector<int> exemplars;
 	for (int i = 0; i < m_pointCount; i++)
 	{
 		float criteria = m_availability[m_pointCount * i + i] + m_responsibility[m_pointCount * i + i];
-		std::cout << "A + R for " << i << ": " << criteria << "\n";
+		//std::cout << "A + R for " << i << ": " << criteria << "\n";
 		if (criteria > 0)
 			exemplars.push_back(i);
 	}
@@ -121,6 +132,6 @@ void ApcGpu::labelPoints()
 		if (selectedExemplar == -1)
 			std::cout << "No exemplar selected for" << i << "!";
 		else
-			std::cout << "Point " << i << ": Cluster " << selectedExemplar << " around point " << exemplars[selectedExemplar] <<"\n";
+			std::cout << "Point " << i << ": Cluster around point " << exemplars[selectedExemplar] <<"\n";
 	}
 }
