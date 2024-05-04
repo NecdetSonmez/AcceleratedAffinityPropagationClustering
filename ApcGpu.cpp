@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdlib.h>
 #include <vector>
+#include <fstream>
 
 #include "Kernels.cuh"
 
@@ -47,8 +48,6 @@ ApcGpu::~ApcGpu()
     cudaFree(m_responsibility);
     cudaFree(m_availability);
 }
-
-//#include <fstream>
 
 void ApcGpu::cluster(int iterations)
 {
@@ -104,14 +103,22 @@ void ApcGpu::updateAvailability()
 
 void ApcGpu::labelPoints()
 {
+//	std::ofstream outputFile("GpuV1.txt");
+//	if (!outputFile.is_open()) 
+//		std::cout << "Output file is not open!\n";
+
 	// Find all exemplar points by checking the criteria
+	std::ofstream clusterFile("GpuV1Clusters.txt");
 	std::vector<int> exemplars;
 	for (int i = 0; i < m_pointCount; i++)
 	{
 		float criteria = m_availability[m_pointCount * i + i] + m_responsibility[m_pointCount * i + i];
 		//std::cout << "A + R for " << i << ": " << criteria << "\n";
 		if (criteria > 0)
+		{
 			exemplars.push_back(i);
+//			outputFile << "E: " << i << "\n";
+		}
 	}
 
 	// Label all points and print
@@ -122,6 +129,12 @@ void ApcGpu::labelPoints()
 		int selectedExemplar = -1;
 		for (int e = 0; e < exemplars.size(); e++)
 		{
+			if (exemplars[e] == i)
+			{
+				selectedExemplar = e;
+				break;
+			}
+
 			if (m_similarity[m_pointCount * i + exemplars[e]] > max)
 			{
 				max = m_similarity[m_pointCount * i + exemplars[e]];
@@ -133,5 +146,10 @@ void ApcGpu::labelPoints()
 			std::cout << "No exemplar selected for" << i << "!";
 		else
 			std::cout << "Point " << i << ": Cluster around point " << exemplars[selectedExemplar] <<"\n";
+		
+//        outputFile << i << " " << m_points[m_pointDimension * i + 0] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] << "\n";
+		clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] + 1 << "\n";
+		
 	}
+	clusterFile.close();
 }

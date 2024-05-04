@@ -30,3 +30,11 @@ __global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount
 // Availability with sum data precomputed
 void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
 __global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
+
+// Max Finder
+void launchKernel_findMaxForResponsibility(int blockCount, int threadCount, float* similarity, float* availability, float* maxValues, int pointCount);
+__global__ void Kernel_findMaxForResponsibility(float* similarity, float* availability, float* maxValues, int pointCount);
+
+// Responsibility with max
+void launchKernel_updateResponsibilityWithMax(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues);
+__global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues);

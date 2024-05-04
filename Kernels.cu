@@ -18,7 +18,7 @@ __global__ void Kernel_updateSimilarity(float* points, float* similarity, int po
         return;
     if (i == j)
     {
-        similarity[pointCount * i + j] = -1;
+        similarity[pointCount * i + j] = -1.0f;
     }
     else
     {
@@ -144,6 +144,13 @@ __global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* poin
 		if (exemplars[e] == 0)
 			continue;
 
+		// If current point is an exemplar, label it as itself.
+		if (e == i)
+		{
+			selectedExemplar = e;
+			break;
+		}
+
 		float temp = similarity[pointCount * i + e];
 		if (temp > max)
 		{
@@ -211,3 +218,62 @@ __global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* respo
 	}
 }
 
+void launchKernel_findMaxForResponsibility(int blockCount, int threadCount, float* similarity, float* availability, float* maxValues, int pointCount)
+{
+	Kernel_findMaxForResponsibility<<<blockCount, threadCount>>>(similarity, availability, maxValues, pointCount);
+}
+
+__global__ void Kernel_findMaxForResponsibility(float* similarity, float* availability, float* maxValues, int pointCount)
+{
+    // Open n threads for this kernel. Each thread finds max 2 values of A(i,k) + S(i,k).
+	// This will then be used for updating the responsibility.
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= pointCount)
+        return;
+
+    float max = -FLT_MAX;
+	float runnerup = -FLT_MAX;
+
+    for (int k = 0; k < pointCount; k++)
+	{
+		float temp = availability[pointCount * i + k] + similarity[pointCount * i + k];
+		if (temp > max)
+		{
+			runnerup = max;
+			max = temp;
+		}
+		else if (temp > runnerup)
+			runnerup = temp;
+	}
+		
+	// Max values found, save to memory.
+	maxValues[2 * i] = max;
+	maxValues[2 * i + 1] = runnerup;
+}
+
+void launchKernel_updateResponsibilityWithMax(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues)
+{
+    dim3 blockCount2d(blockCount, blockCount);
+    dim3 threadCount2d(threadCount, threadCount);
+    Kernel_updateResponsibilityWithMax<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, maxValues);
+}
+
+__global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues)
+{
+    // Open n^2 threads for this kernel. Each thread reads max of A(i,k) + S(i,k). For each point (i,j)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= pointCount || j >= pointCount)
+        return;
+
+	// Check which to use from max and runnerup
+	float temp = availability[pointCount * i + j] + similarity[pointCount * i + j];
+	float max = maxValues[2 * i];
+	float runnerup = maxValues[2 * i + 1];
+	if (temp == max)
+		max = runnerup;
+		
+	// Max found, calculate responsibility.
+	float newResponsibility = similarity[pointCount * i + j] - max;
+	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1 - dampingFactor) * newResponsibility;
+}

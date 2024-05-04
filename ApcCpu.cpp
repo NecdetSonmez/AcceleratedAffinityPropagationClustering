@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdlib.h>
 #include <vector>
+#include <fstream>
 
 ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingFactor)
 {
@@ -32,7 +33,7 @@ ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingF
 	m_responsibility = new float[m_pointCount * m_pointCount]();
 	m_availability = new float[m_pointCount * m_pointCount]();
 
-	memcpy(m_points, points, 4 * m_pointCount * m_pointDimension);
+	memcpy(m_points, points, 4ull * m_pointCount * m_pointDimension);
 }
 
 ApcCpu::~ApcCpu()
@@ -149,6 +150,7 @@ void ApcCpu::updateAvailability()
 void ApcCpu::labelPoints()
 {
 	// Find all exemplar points by checking the criteria
+	std::ofstream clusterFile("CpuClusters.txt");
 	std::vector<int> exemplars;
 	for (int i = 0; i < m_pointCount; i++)
 	{
@@ -166,6 +168,12 @@ void ApcCpu::labelPoints()
 		int selectedExemplar = -1;
 		for (int e = 0; e < exemplars.size(); e++)
 		{
+			if (exemplars[e] == i)
+			{
+				selectedExemplar = e;
+				break;
+			}
+
 			if (m_similarity[m_pointCount * i + exemplars[e]] > max)
 			{
 				max = m_similarity[m_pointCount * i + exemplars[e]];
@@ -176,6 +184,9 @@ void ApcCpu::labelPoints()
 		if (selectedExemplar == -1)
 			std::cout << "No exemplar selected for" << i << "!";
 		else
-			std::cout << "Point " << i << ": Cluster " << selectedExemplar << " around point " << exemplars[selectedExemplar] <<"\n";
+			std::cout << "Point " << i << ": Cluster around point " << exemplars[selectedExemplar] <<"\n";
+
+		clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] + 1 << "\n";
 	}
+	clusterFile.close();
 }

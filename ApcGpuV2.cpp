@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdlib.h>
 #include <vector>
+#include <fstream>
 
 #include "Kernels.cuh"
 
@@ -48,6 +49,7 @@ ApcGpuV2::ApcGpuV2(float* points, int pointCount, int pointDimension, float damp
     cudaMalloc((void**)&m_deviceExemplars, m_pointCount);
     cudaMalloc((void**)&m_devicePointLabel, 4 * m_pointCount);
     cudaMalloc((void**)&m_deviceSumsOfResponsibility, 4 * m_pointCount);
+    cudaMalloc((void**)&m_deviceMaxForResponsibility, 2 * m_pointCount);
 
     cudaMemset(m_deviceSimilarity, 0, 4 * m_pointCount * m_pointCount);
     cudaMemset(m_deviceResponsibility, 0, 4 * m_pointCount * m_pointCount);
@@ -71,9 +73,8 @@ ApcGpuV2::~ApcGpuV2()
     cudaFree(m_deviceExemplars);
     cudaFree(m_devicePointLabel);
     cudaFree(m_deviceSumsOfResponsibility);
+    cudaFree(m_deviceMaxForResponsibility);
 }
-
-//#include <fstream>
 
 void ApcGpuV2::cluster(int iterations)
 {
@@ -110,22 +111,30 @@ void ApcGpuV2::updateSimilarity()
 
 void ApcGpuV2::updateResponsibility()
 {
-	// Run 1024 = 32*32 threads per block
-    int threadCount = 32;
-    // Calculate block count
-    int blockCount = ((m_pointCount - 1)/ 32) + 1;
-	launchKernel_updateResponsibility(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
-}
-
-void ApcGpuV2::updateAvailability()
-{
 /*
 	// Run 1024 = 32*32 threads per block
     int threadCount = 32;
     // Calculate block count
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
-	launchKernel_updateAvailability(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
+	launchKernel_updateResponsibility(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
 */
+    // Find max and runnerup values
+    int blockCount = ((m_pointCount - 1)/ 32) + 1;
+    int blockCount1d = ((m_pointCount - 1)/ 1024) + 1;
+    launchKernel_findMaxForResponsibility(blockCount1d, 1024, m_deviceSimilarity, m_deviceAvailability, m_deviceMaxForResponsibility, m_pointCount);
+    launchKernel_updateResponsibilityWithMax(blockCount, 32, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor, m_deviceMaxForResponsibility);
+}
+
+void ApcGpuV2::updateAvailability()
+{
+/*
+*/
+	// Run 1024 = 32*32 threads per block
+    int threadCount = 32;
+    // Calculate block count
+    int blockCount = ((m_pointCount - 1)/ 32) + 1;
+	launchKernel_updateAvailability(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
+/*
     int threadCount = 32;
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
     int blockCount1d = ((m_pointCount - 1)/ 1024) + 1;
@@ -134,25 +143,26 @@ void ApcGpuV2::updateAvailability()
     cudaDeviceSynchronize();
     launchKernel_updateAvailabilityWithSum(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor, m_deviceSumsOfResponsibility);
     cudaDeviceSynchronize();
-/*
 */
 }
 
 void ApcGpuV2::labelPoints()
 {
-    int blockCount = ((m_pointCount - 1)/ 1024) + 1;
+    int blockCount = ((m_pointCount - 1) / 1024) + 1;
     launchKernel_extractExemplars(blockCount, 1024, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_deviceExemplars);
     launchKernel_labelPoints(blockCount, 1024, m_deviceSimilarity, m_deviceExemplars, m_devicePointLabel, m_pointCount);
     
     int* labels = new int[m_pointCount];
     cudaMemcpy(labels, m_devicePointLabel, 4 * m_pointCount, cudaMemcpyDeviceToHost);
+    std::ofstream clusterFile("GpuV2Clusters.txt");
     for (int i = 0; i < m_pointCount; i++)
     {
         if (labels[i] == -1)
 			std::cout << "No exemplar selected for " << i << "\n";
 		else
 			std::cout << "Point " << i << ": Cluster around point " << labels[i] <<"\n";
+        clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << labels[i] + 1 << "\n";
     }
+    clusterFile.close();
     delete labels;
-    
 }
