@@ -1,6 +1,9 @@
 #include "Points.hpp"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
 
 void Points::generatePoints(std::vector<std::vector<float>> centers, int count, float standardDeviation, int dimension)
 {
@@ -30,6 +33,34 @@ void Points::generatePoints(std::vector<std::vector<float>> centers, int count, 
         
         pointsIndex += dimension;
     }
+}
+
+void Points::loadFromFile(std::string path)
+{
+    std::ifstream file(path);
+    std::string line;
+    std::vector<float> values;
+
+    if (!file.is_open()) 
+    {
+        std::cout << "Failed to open file: " << path << "\n";
+        return;
+    }
+
+    while (getline(file, line)) 
+    {
+        std::istringstream iss(line);
+        float num;
+        while (iss >> num) 
+            values.push_back(num);
+    }
+
+    file.close();
+
+    int count = values.size();
+    m_points = new float[count];
+    for (int i = 0; i < count; ++i) 
+        m_points[i] = values[i];
 }
 
 Points::~Points()
