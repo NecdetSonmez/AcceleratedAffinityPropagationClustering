@@ -10,7 +10,7 @@ class Points
 public:
     Points() {};
     ~Points();
-    void generatePoints(std::vector<std::tuple<float, float>> centers, int count, float standardDeviation);
+    void generatePoints(std::vector<std::vector<float>> centers, int count, float standardDeviation, int dimension);
     float* getPoints();
     int getCount();
 private:

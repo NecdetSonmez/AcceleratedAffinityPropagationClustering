@@ -127,7 +127,9 @@ void ApcGpuV2::labelPoints()
     std::ofstream clusterFile("GpuV2Clusters.txt");
     for (int i = 0; i < m_pointCount; i++)
     {
-        clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << labels[i] + 1 << "\n";
+		for (int d = 0; d < m_pointDimension; d++)
+            clusterFile << m_points[m_pointDimension * i + d] << " ";
+        clusterFile << labels[i] + 1 << "\n";
     }
     clusterFile.close();
     std::cout << "Labels written to GpuV2Clusters.txt\n\n";

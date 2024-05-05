@@ -126,7 +126,9 @@ void ApcGpu::labelPoints()
 				selectedExemplar = e;
 			}
 		}
-		clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] + 1 << "\n";
+		for (int d = 0; d < m_pointDimension; d++)
+			clusterFile << m_points[m_pointDimension * i + d] << " ";
+		clusterFile << exemplars[selectedExemplar] + 1 << "\n";
 	}
 	clusterFile.close();
 	std::cout << "Labels written to GpuV1Clusters.txt\n\n";

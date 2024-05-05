@@ -2,11 +2,11 @@
 
 #include <iostream>
 
-void Points::generatePoints(std::vector<std::tuple<float, float>> centers, int count, float standardDeviation)
+void Points::generatePoints(std::vector<std::vector<float>> centers, int count, float standardDeviation, int dimension)
 {
-    // Allocate for m_points (point dimension assumed 2D)
+    // Allocate for m_points based on the provided dimension
     m_count = count;
-    m_points = new float[2 * m_count];
+    m_points = new float[dimension * m_count];
 
     // Generator for points
     std::random_device randomDevice;
@@ -23,12 +23,12 @@ void Points::generatePoints(std::vector<std::tuple<float, float>> centers, int c
         // Select a random center point
         int randomCenterIndex = distributionCenter(generatorCenter);
         
-        std::normal_distribution<float> distributionX(std::get<0>(centers[randomCenterIndex]), standardDeviation);
-        std::normal_distribution<float> distributionY(std::get<1>(centers[randomCenterIndex]), standardDeviation);
-
-        m_points[pointsIndex] = distributionX(generator);
-        m_points[pointsIndex + 1] = distributionX(generator);
-        pointsIndex += 2;
+        for (int dim = 0; dim < dimension; ++dim) {
+            std::normal_distribution<float> distribution(centers[randomCenterIndex][dim], standardDeviation);
+            m_points[pointsIndex + dim] = distribution(generator);
+        }
+        
+        pointsIndex += dimension;
     }
 }
 
