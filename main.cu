@@ -10,12 +10,12 @@
 #include "Points.hpp"
 
 #define GENERATE_POINTS true // NOTE: all of the parameters below still need to be set.
-#define POINT_COUNT 100 // ALWAYS set this to the correct point count.
+#define POINT_COUNT 1000 // ALWAYS set this to the correct point count.
 #define POINT_DIM 2 // ALWAYS set this to the correct point dimension.
-#define POINT_VARIATION 1.0 // Used if GENERATE_POINTS is true as standard deviation.
+#define POINT_VARIATION 1.0f // Used if GENERATE_POINTS is true as standard deviation.
 #define FILENAME "input.txt" // Has 100 2D points, given as an example. Only used if GENERATE_POINTS is false.
 
-#define DAMPING_FACTOR 0.5
+#define DAMPING_FACTOR 0.5f
 #define ITERATION_COUNT 100
 
 #define USE_GPU true

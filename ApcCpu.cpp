@@ -34,7 +34,7 @@ ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingF
 	m_responsibility = new float[m_pointCount * m_pointCount]();
 	m_availability = new float[m_pointCount * m_pointCount]();
 
-	memcpy(m_points, points, 4ull * m_pointCount * m_pointDimension);
+	memcpy(m_points, points, 4 * m_pointCount * m_pointDimension);
 }
 
 ApcCpu::~ApcCpu()
@@ -68,7 +68,7 @@ void ApcCpu::updateSimilarity()
 			if (i == j)
 			{
 				// TODO: Change diagonal values to a parameter
-				m_similarity[m_pointCount * i + j] = -1;
+				m_similarity[m_pointCount * i + j] = -1.0f;
 				continue;
 			}
 

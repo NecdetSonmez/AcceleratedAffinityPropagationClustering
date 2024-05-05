@@ -58,7 +58,7 @@ __global__ void Kernel_updateResponsibility(float* similarity, float* responsibi
 		
 	// Max found, calculate responsibility.
 	float newResponsibility = similarity[pointCount * i + j] - max;
-	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1 - dampingFactor) * newResponsibility;
+	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1.0f - dampingFactor) * newResponsibility;
 }
 
 void launchKernel_updateAvailability(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
@@ -86,7 +86,7 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 				continue;
 			newAvailability += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
 		}
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
 	}
 	else
 	{
@@ -96,14 +96,14 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 		{
 			if (k == i || k==j)
 				continue;
-			newAvailability += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
+			newAvailability += (responsibility[pointCount * k + j] > 0.0f ? responsibility[pointCount * k + j] : 0.0f);
 		}
 		newAvailability += responsibility[pointCount * j + j];
 		
 		// min(0, newAvailability)
 		if (newAvailability > 0)
 			newAvailability = 0;
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
 	}
 }
 
@@ -217,7 +217,7 @@ __global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* res
 		
 	// Max found, calculate responsibility.
 	float newResponsibility = similarity[pointCount * i + j] - max;
-	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1 - dampingFactor) * newResponsibility;
+	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1.0f - dampingFactor) * newResponsibility;
 }
 
 // UNUSED KERNELS
@@ -234,7 +234,7 @@ __global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount
 
 	float sum = 0;
 	for (int k = 0; k < pointCount; k++)
-    	sum += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
+    	sum += (responsibility[pointCount * k + j] > 0.0f ? responsibility[pointCount * k + j] : 0.0f);
 	sumsOfResponsibility[j] = sum;
 }
 
@@ -257,22 +257,22 @@ __global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* respo
 	{
 		float newAvailability = sumsOfResponsibility[j];
 
-		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
+		newAvailability -= (responsibility[pointCount * i + j] > 0.0f ? responsibility[pointCount * i + j] : 0.0f);
 
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
 	}
 	else
 	{
 		float newAvailability = sumsOfResponsibility[j];
 
-		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
-		newAvailability -= (responsibility[pointCount * j + j] > 0 ? responsibility[pointCount * j + j] : 0);
+		newAvailability -= (responsibility[pointCount * i + j] > 0.0f ? responsibility[pointCount * i + j] : 0.0f);
+		newAvailability -= (responsibility[pointCount * j + j] > 0.0f ? responsibility[pointCount * j + j] : 0.0f);
 
 		newAvailability += responsibility[pointCount * j + j];
 		
 		// min(0, newAvailability)
 		if (newAvailability > 0)
 			newAvailability = 0;
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
 	}
 }
