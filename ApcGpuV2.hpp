@@ -29,7 +29,6 @@ private:
 
     char* m_deviceExemplars; // 1 or 0 indicating if the point is an exemplar 
     int* m_devicePointLabel; // Integer for point cluster exemplar index
-    float* m_deviceSumsOfResponsibility;
 	float* m_deviceMaxForResponsibility;
 };
 

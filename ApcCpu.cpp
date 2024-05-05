@@ -1,4 +1,5 @@
 #include "ApcCpu.hpp"
+#include "Timer.hpp"
 #include <iostream>
 #include <limits>
 #include <stdlib.h>
@@ -46,12 +47,15 @@ ApcCpu::~ApcCpu()
 
 void ApcCpu::cluster(int iterations)
 {
+	Timer timer("Cpu");
+	timer.start();
 	updateSimilarity();
 	for (int iter = 0; iter < iterations; iter++)
 	{
 		updateResponsibility();
 		updateAvailability();
 	}
+	timer.endAndPrint();
 	labelPoints();
 }
 
@@ -155,7 +159,6 @@ void ApcCpu::labelPoints()
 	for (int i = 0; i < m_pointCount; i++)
 	{
 		float criteria = m_availability[m_pointCount * i + i] + m_responsibility[m_pointCount * i + i];
-		std::cout << "A + R for " << i << ": " << criteria << "\n";
 		if (criteria > 0)
 			exemplars.push_back(i);
 	}
@@ -180,13 +183,8 @@ void ApcCpu::labelPoints()
 				selectedExemplar = e;
 			}
 		}
-
-		if (selectedExemplar == -1)
-			std::cout << "No exemplar selected for" << i << "!";
-		else
-			std::cout << "Point " << i << ": Cluster around point " << exemplars[selectedExemplar] <<"\n";
-
 		clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] + 1 << "\n";
 	}
 	clusterFile.close();
+	std::cout << "Labels written to CpuClusters.txt\n\n";
 }

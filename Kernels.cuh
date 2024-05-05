@@ -23,14 +23,6 @@ __global__ void Kernel_extractExemplars(float* responsibility, float* availabili
 void launchKernel_labelPoints(int blockCount, int threadCount, float* similarity, char* exemplars, int* pointLabels, int pointCount);
 __global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* pointLabels, int pointCount);
 
-// Sums of responsibility
-void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility);
-__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility);
-
-// Availability with sum data precomputed
-void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
-__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
-
 // Max Finder
 void launchKernel_findMaxForResponsibility(int blockCount, int threadCount, float* similarity, float* availability, float* maxValues, int pointCount);
 __global__ void Kernel_findMaxForResponsibility(float* similarity, float* availability, float* maxValues, int pointCount);
@@ -38,3 +30,12 @@ __global__ void Kernel_findMaxForResponsibility(float* similarity, float* availa
 // Responsibility with max
 void launchKernel_updateResponsibilityWithMax(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues);
 __global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues);
+
+// UNUSED KERNELS
+// Sums of responsibility
+void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility);
+__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility);
+
+// Availability with sum data precomputed
+void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);
+__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility);

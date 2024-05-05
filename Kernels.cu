@@ -6,7 +6,6 @@ void launchKernel_updateSimilarity(int blockCount, int threadCount, float* point
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
     Kernel_updateSimilarity<<<blockCount2d, threadCount2d>>>(points, similarity, pointCount, pointDimension);
-    //cudaDeviceSynchronize();
 }
 
 __global__ void Kernel_updateSimilarity(float* points, float* similarity, int pointCount, int pointDimension)
@@ -161,63 +160,6 @@ __global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* poin
 	pointLabels[i] = selectedExemplar;
 }
 
-void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility)
-{
-	//cudaMemset(sumsOfResponsibility, 0, 4 * pointCount);
-	Kernel_sumOfResponsibility<<<blockCount, threadCount>>>(responsibility, pointCount, sumsOfResponsibility);
-}
-
-__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility)
-{
-    int j = blockIdx.x * blockDim.x + threadIdx.x;
-	if (j >= pointCount)
-        return;
-
-	float sum = 0;
-	for (int k = 0; k < pointCount; k++)
-    	sum += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
-	sumsOfResponsibility[j] = sum;
-}
-
-void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
-{
-    dim3 blockCount2d(blockCount, blockCount);
-    dim3 threadCount2d(threadCount, threadCount);
-    Kernel_updateAvailabilityWithSum<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, sumsOfResponsibility);
-}
-
-__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
-{
-    // Open n^2 threads for this kernel. For each point (i,j)
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
-    if (i >= pointCount || j >= pointCount)
-        return;
-
-	if (i == j)
-	{
-		float newAvailability = sumsOfResponsibility[j];
-
-		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
-
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
-	}
-	else
-	{
-		float newAvailability = sumsOfResponsibility[j];
-
-		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
-		newAvailability -= (responsibility[pointCount * j + j] > 0 ? responsibility[pointCount * j + j] : 0);
-
-		newAvailability += responsibility[pointCount * j + j];
-		
-		// min(0, newAvailability)
-		if (newAvailability > 0)
-			newAvailability = 0;
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
-	}
-}
-
 void launchKernel_findMaxForResponsibility(int blockCount, int threadCount, float* similarity, float* availability, float* maxValues, int pointCount)
 {
 	Kernel_findMaxForResponsibility<<<blockCount, threadCount>>>(similarity, availability, maxValues, pointCount);
@@ -276,4 +218,61 @@ __global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* res
 	// Max found, calculate responsibility.
 	float newResponsibility = similarity[pointCount * i + j] - max;
 	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1 - dampingFactor) * newResponsibility;
+}
+
+// UNUSED KERNELS
+void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility)
+{
+	Kernel_sumOfResponsibility<<<blockCount, threadCount>>>(responsibility, pointCount, sumsOfResponsibility);
+}
+
+__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility)
+{
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+	if (j >= pointCount)
+        return;
+
+	float sum = 0;
+	for (int k = 0; k < pointCount; k++)
+    	sum += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
+	sumsOfResponsibility[j] = sum;
+}
+
+void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
+{
+    dim3 blockCount2d(blockCount, blockCount);
+    dim3 threadCount2d(threadCount, threadCount);
+    Kernel_updateAvailabilityWithSum<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, sumsOfResponsibility);
+}
+
+__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
+{
+    // Open n^2 threads for this kernel. For each point (i,j)
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= pointCount || j >= pointCount)
+        return;
+
+	if (i == j)
+	{
+		float newAvailability = sumsOfResponsibility[j];
+
+		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
+
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+	}
+	else
+	{
+		float newAvailability = sumsOfResponsibility[j];
+
+		newAvailability -= (responsibility[pointCount * i + j] > 0 ? responsibility[pointCount * i + j] : 0);
+		newAvailability -= (responsibility[pointCount * j + j] > 0 ? responsibility[pointCount * j + j] : 0);
+
+		newAvailability += responsibility[pointCount * j + j];
+		
+		// min(0, newAvailability)
+		if (newAvailability > 0)
+			newAvailability = 0;
+		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1 - dampingFactor) * newAvailability;
+	}
 }

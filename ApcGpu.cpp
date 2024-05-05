@@ -1,4 +1,5 @@
 #include "ApcGpu.hpp"
+#include "Timer.hpp"
 #include <iostream>
 #include <limits>
 #include <stdlib.h>
@@ -51,24 +52,16 @@ ApcGpu::~ApcGpu()
 
 void ApcGpu::cluster(int iterations)
 {
+	Timer timer("GpuV1");
+	timer.start();
 	updateSimilarity();
 	for (int iter = 0; iter < iterations; iter++)
 	{
 		updateResponsibility();
 		updateAvailability();
-		//if (iter == 25)
-        //{
-		//	cudaDeviceSynchronize();
-        //    std::ofstream outputFile("A.txt");
-        //    if (outputFile.is_open())
-        //    {
-        //        for (int i = 0; i < m_pointCount * m_pointCount; i++)
-        //            outputFile << m_availability[i] << "\n";
-        //        outputFile.close();
-        //    }   
-        //}
 	}
 	cudaDeviceSynchronize();
+	timer.endAndPrint();
 	labelPoints();
 }
 
@@ -78,8 +71,6 @@ void ApcGpu::updateSimilarity()
     int threadCount = 32;
     // Calculate block count
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
-
-    // Call 2D similarity kernel
 	launchKernel_updateSimilarity(blockCount, threadCount, m_points, m_similarity, m_pointCount, m_pointDimension);
 }
 
@@ -103,21 +94,15 @@ void ApcGpu::updateAvailability()
 
 void ApcGpu::labelPoints()
 {
-//	std::ofstream outputFile("GpuV1.txt");
-//	if (!outputFile.is_open()) 
-//		std::cout << "Output file is not open!\n";
-
 	// Find all exemplar points by checking the criteria
 	std::ofstream clusterFile("GpuV1Clusters.txt");
 	std::vector<int> exemplars;
 	for (int i = 0; i < m_pointCount; i++)
 	{
 		float criteria = m_availability[m_pointCount * i + i] + m_responsibility[m_pointCount * i + i];
-		//std::cout << "A + R for " << i << ": " << criteria << "\n";
 		if (criteria > 0)
 		{
 			exemplars.push_back(i);
-//			outputFile << "E: " << i << "\n";
 		}
 	}
 
@@ -141,15 +126,8 @@ void ApcGpu::labelPoints()
 				selectedExemplar = e;
 			}
 		}
-
-		if (selectedExemplar == -1)
-			std::cout << "No exemplar selected for" << i << "!";
-		else
-			std::cout << "Point " << i << ": Cluster around point " << exemplars[selectedExemplar] <<"\n";
-		
-//        outputFile << i << " " << m_points[m_pointDimension * i + 0] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] << "\n";
 		clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << exemplars[selectedExemplar] + 1 << "\n";
-		
 	}
 	clusterFile.close();
+	std::cout << "Labels written to GpuV1Clusters.txt\n\n";
 }

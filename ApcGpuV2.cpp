@@ -1,4 +1,5 @@
 #include "ApcGpuV2.hpp"
+#include "Timer.hpp"
 #include <iostream>
 #include <limits>
 #include <stdlib.h>
@@ -48,14 +49,11 @@ ApcGpuV2::ApcGpuV2(float* points, int pointCount, int pointDimension, float damp
 
     cudaMalloc((void**)&m_deviceExemplars, m_pointCount);
     cudaMalloc((void**)&m_devicePointLabel, 4 * m_pointCount);
-    cudaMalloc((void**)&m_deviceSumsOfResponsibility, 4 * m_pointCount);
     cudaMalloc((void**)&m_deviceMaxForResponsibility, 2 * m_pointCount);
 
     cudaMemset(m_deviceSimilarity, 0, 4 * m_pointCount * m_pointCount);
     cudaMemset(m_deviceResponsibility, 0, 4 * m_pointCount * m_pointCount);
     cudaMemset(m_deviceAvailability, 0, 4 * m_pointCount * m_pointCount);
-
-    cudaMemset(m_deviceSumsOfResponsibility, 0, 4 * m_pointCount);
 
     cudaMemcpy(m_devicePoints, m_points, 4 * m_pointCount * m_pointDimension, cudaMemcpyHostToDevice);
 }
@@ -72,31 +70,22 @@ ApcGpuV2::~ApcGpuV2()
     cudaFree(m_deviceAvailability);
     cudaFree(m_deviceExemplars);
     cudaFree(m_devicePointLabel);
-    cudaFree(m_deviceSumsOfResponsibility);
     cudaFree(m_deviceMaxForResponsibility);
 }
 
 void ApcGpuV2::cluster(int iterations)
 {
+    Timer timer("GpuV2");
+	timer.start();
 	updateSimilarity();
 	for (int iter = 0; iter < iterations; iter++)
 	{
 		updateResponsibility();
 		updateAvailability();
-        //if (iter == 25)
-        //{
-        //    cudaMemcpy(m_availability, m_deviceAvailability, 4 * m_pointCount * m_pointCount, cudaMemcpyDeviceToHost);
-        //    std::ofstream outputFile("A2.txt");
-        //    if (outputFile.is_open())
-        //    {
-        //        for (int i = 0; i < m_pointCount * m_pointCount; i++)
-        //            outputFile << m_availability[i] << "\n";
-        //        outputFile.close();
-        //    }   
-        //}
 	}
     cudaDeviceSynchronize();
-	labelPoints();
+	timer.endAndPrint();
+    labelPoints();
 }
 
 void ApcGpuV2::updateSimilarity()
@@ -111,13 +100,6 @@ void ApcGpuV2::updateSimilarity()
 
 void ApcGpuV2::updateResponsibility()
 {
-/*
-	// Run 1024 = 32*32 threads per block
-    int threadCount = 32;
-    // Calculate block count
-    int blockCount = ((m_pointCount - 1)/ 32) + 1;
-	launchKernel_updateResponsibility(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
-*/
     // Find max and runnerup values
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
     int blockCount1d = ((m_pointCount - 1)/ 1024) + 1;
@@ -127,23 +109,11 @@ void ApcGpuV2::updateResponsibility()
 
 void ApcGpuV2::updateAvailability()
 {
-/*
-*/
 	// Run 1024 = 32*32 threads per block
     int threadCount = 32;
     // Calculate block count
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
 	launchKernel_updateAvailability(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor);
-/*
-    int threadCount = 32;
-    int blockCount = ((m_pointCount - 1)/ 32) + 1;
-    int blockCount1d = ((m_pointCount - 1)/ 1024) + 1;
-    cudaDeviceSynchronize();
-    launchKernel_sumOfResponsibility(blockCount1d, 1024, m_deviceResponsibility, m_pointCount, m_deviceSumsOfResponsibility);
-    cudaDeviceSynchronize();
-    launchKernel_updateAvailabilityWithSum(blockCount, threadCount, m_deviceSimilarity, m_deviceResponsibility, m_deviceAvailability, m_pointCount, m_dampingFactor, m_deviceSumsOfResponsibility);
-    cudaDeviceSynchronize();
-*/
 }
 
 void ApcGpuV2::labelPoints()
@@ -157,12 +127,9 @@ void ApcGpuV2::labelPoints()
     std::ofstream clusterFile("GpuV2Clusters.txt");
     for (int i = 0; i < m_pointCount; i++)
     {
-        if (labels[i] == -1)
-			std::cout << "No exemplar selected for " << i << "\n";
-		else
-			std::cout << "Point " << i << ": Cluster around point " << labels[i] <<"\n";
         clusterFile << m_points[m_pointDimension * i] << " " << m_points[m_pointDimension * i + 1] << " " << labels[i] + 1 << "\n";
     }
     clusterFile.close();
+    std::cout << "Labels written to GpuV2Clusters.txt\n\n";
     delete labels;
 }
