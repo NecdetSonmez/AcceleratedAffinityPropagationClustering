@@ -31,14 +31,14 @@ __global__ void Kernel_updateSimilarity(float* points, float* similarity, int po
     }
 }
 
-void launchKernel_updateResponsibility(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
+void launchKernel_updateResponsibility(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount)
 {
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
-    Kernel_updateResponsibility<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor);
+    Kernel_updateResponsibility<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount);
 }
 
-__global__ void Kernel_updateResponsibility(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
+__global__ void Kernel_updateResponsibility(float* similarity, float* responsibility, float* availability, int pointCount)
 {
     // Open n^2 threads for this kernel. Each thread finds max of A(i,k) + S(i,k). For each point (i,j)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -58,17 +58,17 @@ __global__ void Kernel_updateResponsibility(float* similarity, float* responsibi
 		
 	// Max found, calculate responsibility.
 	float newResponsibility = similarity[pointCount * i + j] - max;
-	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1.0f - dampingFactor) * newResponsibility;
+	responsibility[pointCount * i + j] = 0.5 * responsibility[pointCount * i + j] + 0.5 * newResponsibility;
 }
 
-void launchKernel_updateAvailability(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
+void launchKernel_updateAvailability(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount)
 {
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
-    Kernel_updateAvailability<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor);
+    Kernel_updateAvailability<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount);
 }
 
-__global__ void Kernel_updateAvailability(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor)
+__global__ void Kernel_updateAvailability(float* similarity, float* responsibility, float* availability, int pointCount)
 {
     // Open n^2 threads for this kernel. For each point (i,j)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -86,7 +86,7 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 				continue;
 			newAvailability += (responsibility[pointCount * k + j] > 0 ? responsibility[pointCount * k + j] : 0);
 		}
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = 0.5 * availability[pointCount * i + j] + 0.5 * newAvailability;
 	}
 	else
 	{
@@ -103,7 +103,7 @@ __global__ void Kernel_updateAvailability(float* similarity, float* responsibili
 		// min(0, newAvailability)
 		if (newAvailability > 0)
 			newAvailability = 0;
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
+		availability[pointCount * i + j] = 0.5 * availability[pointCount * i + j] + 0.5 * newAvailability;
 	}
 }
 
@@ -136,6 +136,7 @@ __global__ void Kernel_labelPoints(float* similarity, char* exemplars, int* poin
     if (i >= pointCount)
         return;
 
+	// Find max similarity to an exemplar.
 	float max = -FLT_MAX;
 	int selectedExemplar = -1;
 	for (int e = 0; e < pointCount; e++)
@@ -193,14 +194,14 @@ __global__ void Kernel_findMaxForResponsibility(float* similarity, float* availa
 	maxValues[2 * i + 1] = runnerup;
 }
 
-void launchKernel_updateResponsibilityWithMax(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues)
+void launchKernel_updateResponsibilityWithMax(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float* maxValues)
 {
     dim3 blockCount2d(blockCount, blockCount);
     dim3 threadCount2d(threadCount, threadCount);
-    Kernel_updateResponsibilityWithMax<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, maxValues);
+    Kernel_updateResponsibilityWithMax<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, maxValues);
 }
 
-__global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* maxValues)
+__global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* responsibility, float* availability, int pointCount, float* maxValues)
 {
     // Open n^2 threads for this kernel. Each thread reads max of A(i,k) + S(i,k). For each point (i,j)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -217,62 +218,5 @@ __global__ void Kernel_updateResponsibilityWithMax(float* similarity, float* res
 		
 	// Max found, calculate responsibility.
 	float newResponsibility = similarity[pointCount * i + j] - max;
-	responsibility[pointCount * i + j] = dampingFactor * responsibility[pointCount * i + j] + (1.0f - dampingFactor) * newResponsibility;
-}
-
-// UNUSED KERNELS
-void launchKernel_sumOfResponsibility(int blockCount, int threadCount, float* responsibility, int pointCount, float* sumsOfResponsibility)
-{
-	Kernel_sumOfResponsibility<<<blockCount, threadCount>>>(responsibility, pointCount, sumsOfResponsibility);
-}
-
-__global__ void Kernel_sumOfResponsibility(float* responsibility, int pointCount, float* sumsOfResponsibility)
-{
-    int j = blockIdx.x * blockDim.x + threadIdx.x;
-	if (j >= pointCount)
-        return;
-
-	float sum = 0;
-	for (int k = 0; k < pointCount; k++)
-    	sum += (responsibility[pointCount * k + j] > 0.0f ? responsibility[pointCount * k + j] : 0.0f);
-	sumsOfResponsibility[j] = sum;
-}
-
-void launchKernel_updateAvailabilityWithSum(int blockCount, int threadCount, float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
-{
-    dim3 blockCount2d(blockCount, blockCount);
-    dim3 threadCount2d(threadCount, threadCount);
-    Kernel_updateAvailabilityWithSum<<<blockCount2d, threadCount2d>>>(similarity, responsibility, availability, pointCount, dampingFactor, sumsOfResponsibility);
-}
-
-__global__ void Kernel_updateAvailabilityWithSum(float* similarity, float* responsibility, float* availability, int pointCount, float dampingFactor, float* sumsOfResponsibility)
-{
-    // Open n^2 threads for this kernel. For each point (i,j)
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
-    if (i >= pointCount || j >= pointCount)
-        return;
-
-	if (i == j)
-	{
-		float newAvailability = sumsOfResponsibility[j];
-
-		newAvailability -= (responsibility[pointCount * i + j] > 0.0f ? responsibility[pointCount * i + j] : 0.0f);
-
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
-	}
-	else
-	{
-		float newAvailability = sumsOfResponsibility[j];
-
-		newAvailability -= (responsibility[pointCount * i + j] > 0.0f ? responsibility[pointCount * i + j] : 0.0f);
-		newAvailability -= (responsibility[pointCount * j + j] > 0.0f ? responsibility[pointCount * j + j] : 0.0f);
-
-		newAvailability += responsibility[pointCount * j + j];
-		
-		// min(0, newAvailability)
-		if (newAvailability > 0)
-			newAvailability = 0;
-		availability[pointCount * i + j] = dampingFactor * availability[pointCount * i + j] + (1.0f - dampingFactor) * newAvailability;
-	}
+	responsibility[pointCount * i + j] = 0.5 * responsibility[pointCount * i + j] + 0.5 * newResponsibility;
 }

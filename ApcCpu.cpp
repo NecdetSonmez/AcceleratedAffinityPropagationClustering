@@ -6,7 +6,7 @@
 #include <vector>
 #include <fstream>
 
-ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingFactor)
+ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension)
 {
 	if (pointCount <= 0)
 	{
@@ -21,13 +21,6 @@ ApcCpu::ApcCpu(float* points, int pointCount, int pointDimension, float dampingF
 		exit(-1);
 	}
 	m_pointDimension = pointDimension;
-
-	if (dampingFactor < 0 || dampingFactor > 1)
-	{
-		std::cout << "Damping factor outside the range!\n";
-		exit(-1);	
-	}
-	m_dampingFactor = dampingFactor;
 
 	m_points = new float[m_pointCount * m_pointDimension]();
 	m_similarity = new float[m_pointCount * m_pointCount]();
@@ -67,7 +60,6 @@ void ApcCpu::updateSimilarity()
 		{
 			if (i == j)
 			{
-				// TODO: Change diagonal values to a parameter
 				m_similarity[m_pointCount * i + j] = -1.0f;
 				continue;
 			}
@@ -107,7 +99,7 @@ void ApcCpu::updateResponsibility()
 				
 			// Max found, calculate responsibility.
 			float newResponsibility = m_similarity[m_pointCount * i + j] - max;
-			m_responsibility[m_pointCount * i + j] = m_dampingFactor * m_responsibility[m_pointCount * i + j] + (1 - m_dampingFactor) * newResponsibility;
+			m_responsibility[m_pointCount * i + j] = 0.5 * m_responsibility[m_pointCount * i + j] + 0.5 * newResponsibility;
 		}
 	}
 }
@@ -128,7 +120,7 @@ void ApcCpu::updateAvailability()
 						continue;
 					newAvailability += (m_responsibility[m_pointCount * k + j] > 0 ? m_responsibility[m_pointCount * k + j] : 0);
 				}
-				m_availability[m_pointCount * i + j] = m_dampingFactor * m_availability[m_pointCount * i + j] + (1 - m_dampingFactor) * newAvailability;
+				m_availability[m_pointCount * i + j] = 0.5 * m_availability[m_pointCount * i + j] + 0.5 * newAvailability;
 			}
 			else
 			{
@@ -145,7 +137,7 @@ void ApcCpu::updateAvailability()
 				// min(0, newAvailability)
 				if (newAvailability > 0)
 					newAvailability = 0;
-				m_availability[m_pointCount * i + j] = m_dampingFactor * m_availability[m_pointCount * i + j] + (1 - m_dampingFactor) * newAvailability;
+				m_availability[m_pointCount * i + j] = 0.5 * m_availability[m_pointCount * i + j] + 0.5 * newAvailability;
 			}
 		}
 	}

@@ -3,7 +3,7 @@
 class ApcGpu
 {
 public:
-	ApcGpu(float* points, int pointCount, int pointDimension, float dampingFactor);
+	ApcGpu(float* points, int pointCount, int pointDimension);
 	~ApcGpu();
 	void cluster(int iterations = 100);
 
@@ -13,7 +13,6 @@ private:
 	void updateAvailability();
 	void labelPoints();
 
-	float m_dampingFactor;
 	int m_pointCount;
 	int m_pointDimension;
 

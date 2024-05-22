@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 
-void Points::generatePoints(std::vector<std::vector<float>> centers, int count, float standardDeviation, int dimension)
+void Points::generatePoints(std::vector<std::vector<float>> centers, int count, int dimension)
 {
     // Allocate for m_points based on the provided dimension
     m_count = count;
@@ -27,7 +27,7 @@ void Points::generatePoints(std::vector<std::vector<float>> centers, int count, 
         int randomCenterIndex = distributionCenter(generatorCenter);
         
         for (int dim = 0; dim < dimension; ++dim) {
-            std::normal_distribution<float> distribution(centers[randomCenterIndex][dim], standardDeviation);
+            std::normal_distribution<float> distribution(centers[randomCenterIndex][dim], 1.0f);
             m_points[pointsIndex + dim] = distribution(generator);
         }
         

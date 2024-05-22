@@ -11,7 +11,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-ApcGpu::ApcGpu(float* points, int pointCount, int pointDimension, float dampingFactor)
+ApcGpu::ApcGpu(float* points, int pointCount, int pointDimension)
 {
 	if (pointCount <= 0)
 	{
@@ -26,13 +26,6 @@ ApcGpu::ApcGpu(float* points, int pointCount, int pointDimension, float dampingF
 		exit(-1);
 	}
 	m_pointDimension = pointDimension;
-
-	if (dampingFactor < 0 || dampingFactor > 1)
-	{
-		std::cout << "Damping factor outside the range!\n";
-		exit(-1);	
-	}
-	m_dampingFactor = dampingFactor;
 
 	cudaMallocManaged((void**)&m_points, 4 * m_pointCount * m_pointDimension);
     cudaMallocManaged((void**)&m_similarity, 4 * m_pointCount * m_pointCount);
@@ -80,7 +73,7 @@ void ApcGpu::updateResponsibility()
     int threadCount = 32;
     // Calculate block count
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
-	launchKernel_updateResponsibility(blockCount, threadCount, m_similarity, m_responsibility, m_availability, m_pointCount, m_dampingFactor);
+	launchKernel_updateResponsibility(blockCount, threadCount, m_similarity, m_responsibility, m_availability, m_pointCount);
 }
 
 void ApcGpu::updateAvailability()
@@ -89,7 +82,7 @@ void ApcGpu::updateAvailability()
     int threadCount = 32;
     // Calculate block count
     int blockCount = ((m_pointCount - 1)/ 32) + 1;
-	launchKernel_updateAvailability(blockCount, threadCount, m_similarity, m_responsibility, m_availability, m_pointCount, m_dampingFactor);
+	launchKernel_updateAvailability(blockCount, threadCount, m_similarity, m_responsibility, m_availability, m_pointCount);
 }
 
 void ApcGpu::labelPoints()

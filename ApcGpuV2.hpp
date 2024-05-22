@@ -3,7 +3,7 @@
 class ApcGpuV2
 {
 public:
-	ApcGpuV2(float* points, int pointCount, int pointDimension, float dampingFactor);
+	ApcGpuV2(float* points, int pointCount, int pointDimension);
 	~ApcGpuV2();
 	void cluster(int iterations = 100);
 
@@ -13,14 +13,10 @@ private:
 	void updateAvailability();
 	void labelPoints();
 
-	float m_dampingFactor;
 	int m_pointCount;
 	int m_pointDimension;
 
 	float* m_points;
-	float* m_similarity;
-	float* m_responsibility;
-	float* m_availability;
     
     float* m_devicePoints;
 	float* m_deviceSimilarity;
